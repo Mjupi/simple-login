@@ -1,0 +1,16 @@
+{
+  "name": "SimpleAuth",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "start": "nodemon app.js"
+  },
+  "dependencies": {
+    "consolidate": "^0.14.1",
+    "express": "3.0.0rc4",
+    "jade": "*",
+    "mongoose": "*",
+    "nodemon": "*",
+    "swig": "^1.4.2"
+  }
+}
