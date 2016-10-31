@@ -14,14 +14,19 @@ var app = express();
 Database and Models
 */
 mongoose.connect("mongodb://localhost/myapp");
+
+//Bruk dette som egen modell ///////////////////////////////////////////////////////////////////////////////////////////
+
 var UserSchema = new mongoose.Schema({
-    username: String,
+    email: String,
     password: String,
     salt: String,
     hash: String
 });
 
 var User = mongoose.model('users', UserSchema);
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /*
 Middlewares and configurations 
 */
@@ -48,11 +53,13 @@ app.use(function (req, res, next) {
 /*
 Helper Functions
 */
+//Bruk dette i kontroller //////////////////////////////////////////////////////////////////////////////////////////////
+
 function authenticate(name, pass, fn) {
     if (!module.parent) console.log('authenticating %s:%s', name, pass);
 
     User.findOne({
-        username: name
+        email: name
     },
 
     function (err, user) {
@@ -81,7 +88,7 @@ function requiredAuthentication(req, res, next) {
 
 function userExist(req, res, next) {
     User.count({
-        username: req.body.username
+        email: req.body.email
     }, function (err, count) {
         if (count === 0) {
             next();
@@ -92,13 +99,16 @@ function userExist(req, res, next) {
     });
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 /*
 Routes
 */
+//Hvordan å håndtere login og registrer, og req.session, er det viktigste vi trenger ///////////////////////////////////
 app.get("/", function (req, res) {
 
     if (req.session.user) {
-        res.send("Welcome " + req.session.user.username + "<br>" + "<a href='/logout'>logout</a>");
+        res.send("Welcome " + req.session.user.email + "<br>" + "<a href='/logout'>logout</a>");
     } else {
         res.send("<a href='/login'> Login</a>" + "<br>" + "<a href='/signup'> Sign Up</a>");
     }
@@ -114,21 +124,21 @@ app.get("/signup", function (req, res) {
 
 app.post("/signup", userExist, function (req, res) {
     var password = req.body.password;
-    var username = req.body.username;
+    var email = req.body.email;
 
     hash(password, function (err, salt, hash) {
         if (err) throw err;
         var user = new User({
-            username: username,
+            email: email,
             salt: salt,
             hash: hash
         }).save(function (err, newUser) {
             if (err) throw err;
-            authenticate(newUser.username, password, function(err, user){
+            authenticate(newUser.email, password, function(err, user){
                 if(user){
                     req.session.regenerate(function(){
                         req.session.user = user;
-                        req.session.success = 'Authenticated as ' + user.username + ' click to <a href="/logout">logout</a>. ' + ' You may now access <a href="/restricted">/restricted</a>.';
+                        req.session.success = 'Authenticated as ' + user.email + ' click to <a href="/logout">logout</a>. ' + ' You may now access <a href="/restricted">/restricted</a>.';
                         res.redirect('/');
                     });
                 }
@@ -142,17 +152,17 @@ app.get("/login", function (req, res) {
 });
 
 app.post("/login", function (req, res) {
-    authenticate(req.body.username, req.body.password, function (err, user) {
+    authenticate(req.body.email, req.body.password, function (err, user) {
         if (user) {
 
             req.session.regenerate(function () {
 
                 req.session.user = user;
-                req.session.success = 'Authenticated as ' + user.username + ' click to <a href="/logout">logout</a>. ' + ' You may now access <a href="/restricted">/restricted</a>.';
+                req.session.success = 'Authenticated as ' + user.email + ' click to <a href="/logout">logout</a>. ' + ' You may now access <a href="/restricted">/restricted</a>.';
                 res.redirect('/');
             });
         } else {
-            req.session.error = 'Authentication failed, please check your ' + ' username and password.';
+            req.session.error = 'Authentication failed, please check your ' + ' email and password.';
             res.redirect('/login');
         }
     });
@@ -165,8 +175,9 @@ app.get('/logout', function (req, res) {
 });
 
 app.get('/profile', requiredAuthentication, function (req, res) {
-    res.send('Profile page of '+ req.session.user.username +'<br>'+' click to <a href="/logout">logout</a>');
+    res.send('Profile page of '+ req.session.user.email +'<br>'+' click to <a href="/logout">logout</a>');
 });
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 http.createServer(app).listen(3000);
